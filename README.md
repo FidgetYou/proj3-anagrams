@@ -40,3 +40,10 @@ There are currently nose tests for vocab.py, letterbag.py, and jumble.py.
 
 
 
+
+//to run vocab
+make run
+
+//to run minimax
+env/bin/activate
+python3 flask_minijax.py
