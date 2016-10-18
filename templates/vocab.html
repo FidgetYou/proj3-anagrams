@@ -84,7 +84,7 @@
     <label for="attempt">Word:</label>
     <input id="attempt" name="attempt" type="text" width="15"
       autocomplete="off"  autofocus />
-    <input type="submit" name="try" />
+    
   </form>
 
 
@@ -152,16 +152,23 @@ $("#attempt").keyup(function(event) {
               function(data) {
                 rsval = data.result.matches;
 		message = data.result.refresh;
-                //console.log("word: " + rsval)
+ 		console.log("JUNK!! ");
+                //console.log("word: " + rsval);
                 if (rsval) {
-                   //console.log("crap-tastic! ")
+                   //console.log("crap-tastic! ");
                    $("#response").append(" " + message);
                    $("#attempt").val("");
                 } else if (already) {
 		   $("#attempt").val("");
-                   //console.log("still-tastic! ")
+                   //console.log("still-tastic! ");
                    //$("#response").append(txt.length + " "); 
-                }
+                } else if (success) {
+		   console.log("JUNK!! " + window.location.pathname );
+		   //var x = location.href;
+		   //window.location = window.location.protocol + "//" + window.location.host + "/templates/success.html";
+		   window.location.replace(window.location.pathname + "/success.html");
+		   location.reload(window.location.pathname + "/success.html")
+		}
                 //showTiles(txt);
                }
            );
