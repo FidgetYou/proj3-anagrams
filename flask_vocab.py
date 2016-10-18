@@ -23,7 +23,8 @@ from jumble import jumbled
 app = flask.Flask(__name__)
 import CONFIG
 app.secret_key = CONFIG.secret_key  # Should allow using session variables
-
+#global MATCH
+MATCH = 0
 #
 # One shared 'Vocab' object, read-only after initialization,
 # shared by all threads and instances.  Otherwise we would have to
@@ -32,6 +33,7 @@ app.secret_key = CONFIG.secret_key  # Should allow using session variables
 # neither of which would be suitable for responding keystroke by keystroke.
 
 WORDS = Vocab( CONFIG.vocab )
+
 
 ###
 # Pages
@@ -48,6 +50,7 @@ def index():
   assert flask.session["matches"] == [ ]
   assert flask.session["target_count"] > 0
   app.logger.debug("At least one seems to be set correctly")
+  
   return flask.render_template('vocab.html')
 
 @app.route("/keep_going")
@@ -62,6 +65,7 @@ def keep_going():
 
 @app.route("/success")
 def success():
+  MATCH = 0
   return flask.render_template('success.html')
 
 #######################
@@ -71,7 +75,8 @@ def success():
 #   a JSON request handler
 #######################
 
-@app.route("/_check", methods = ["POST"])
+#@app.route("/_check", methods = ["POST"])
+@app.route("/_check")
 def check():
   """
   User has submitted the form with a word ('attempt')
@@ -84,34 +89,56 @@ def check():
   app.logger.debug("Entering check")
 
   ## The data we need, from form and from cookie
-  text = request.form["attempt"]
+  text = request.args.get("text", type=str)
+  #text = request.form["attempt"]
   jumble = flask.session["jumble"]
   matches = flask.session.get("matches", []) # Default to empty list
+  global MATCH
 
   ## Is it good? 
   in_jumble = LetterBag(jumble).contains(text)
   matched = WORDS.has(text)
+  refresh = ""
+  mat = False
+  already = False
+
+  #app.logger.debug("text = " + text)
 
   ## Respond appropriately 
   if matched and in_jumble and not (text in matches):
     ## Cool, they found a new word
+    app.logger.debug("checks out")
     matches.append(text)
+    mat = True
+    refresh = text
+    MATCH = MATCH +1
     flask.session["matches"] = matches
   elif text in matches:
-    flask.flash("You already found {}".format(text))
+    already = True
+    #flask.flash("You already found {}".format(text))
   elif not matched:
-    flask.flash("{} isn't in the list of words".format(text))
+    refresh = ("{} isn't in the list of words".format(text))
+    #flask.flash("{} isn't in the list of words".format(text))
   elif not in_jumble:
-    flask.flash('"{}" can\'t be made from the letters {}'.format(text,jumble))
+    already = True
+    #flask.flash('"{}" can\'t be made from the letters {}'.format(text,jumble))
   else:
     app.logger.debug("This case shouldn't happen!")
     assert False  # Raises AssertionError
+  rslt = { "refresh": refresh, "matches": mat, "already": already}
 
+
+  app.logger.debug("text = " + text)
   ## Choose page:  Solved enough, or keep going? 
-  if len(matches) >= flask.session["target_count"]:
+  if MATCH >= flask.session["target_count"]:
+    #rslt = { "refresh": refresh, "keep_going": false }
+    #return jsonify(result=rslt)
+    #window.location.replace("success")
     return flask.redirect(url_for("success"))
   else:
-    return flask.redirect(url_for("keep_going"))
+    #rslt = { "refresh": refresh, "keep_going": true }
+    return jsonify(result=rslt)
+    #return flask.redirect(url_for("keep_going"))
 
 ###############
 # AJAX request handlers 
@@ -177,6 +204,6 @@ else:
     # Running from cgi-bin or from gunicorn WSGI server, 
     # which makes the call to app.run.  Gunicorn may invoke more than
     # one instance for concurrent service.
-    #FIXME:  Debug cgi interface 
+    
     app.debug=False
 
