@@ -66,7 +66,8 @@ def keep_going():
 @app.route("/success")
 def success():
   MATCH = 0
-  return flask.render_template('success.html')
+  return window.location.replace("success.html")
+  #return flask.render_template('/success.html')
 
 #######################
 # Form handler.  
@@ -101,15 +102,17 @@ def check():
   refresh = ""
   mat = False
   already = False
+  success = False
 
   #app.logger.debug("text = " + text)
 
   ## Respond appropriately 
   if matched and in_jumble and not (text in matches):
     ## Cool, they found a new word
-    app.logger.debug("checks out")
+    
     matches.append(text)
     mat = True
+    
     refresh = text
     MATCH = MATCH +1
     flask.session["matches"] = matches
@@ -125,16 +128,22 @@ def check():
   else:
     app.logger.debug("This case shouldn't happen!")
     assert False  # Raises AssertionError
-  rslt = { "refresh": refresh, "matches": mat, "already": already}
+  rslt = { "refresh": refresh, "matches": mat, "already": already, "success": success }
 
 
   app.logger.debug("text = " + text)
   ## Choose page:  Solved enough, or keep going? 
-  if MATCH >= flask.session["target_count"]:
+  if MATCH >= 3:
     #rslt = { "refresh": refresh, "keep_going": false }
     #return jsonify(result=rslt)
     #window.location.replace("success")
-    return flask.redirect(url_for("success"))
+    app.logger.debug("3 whole words")
+    MATCH = 0
+    mat = False
+    success = True
+    rslt = { "refresh": refresh, "matches": mat, "already": already, "success": success }
+    return jsonify(result=rslt)
+    #return flask.redirect(url_for("success"))
   else:
     #rslt = { "refresh": refresh, "keep_going": true }
     return jsonify(result=rslt)
